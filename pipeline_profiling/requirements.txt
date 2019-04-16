@@ -1,0 +1,2 @@
+aqua >= 0.1.1   #experimental
+hvac >= 0.8.2

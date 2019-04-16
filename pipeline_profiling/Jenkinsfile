@@ -1,0 +1,59 @@
+pipeline{
+
+    agent { label 'node1' }
+    stages {
+          stage('Checkout'){
+            steps{
+                checkout scm
+            }
+          }
+
+
+          stage('Package Docker Image'){
+              steps{
+                   sh "docker build -t us.gcr.io/test-bbfc8/jeffsbooks:latest ."
+              }
+          }
+
+
+           stage("Aqua Scan Image"){
+              steps{
+                script{
+      		        aqua locationType: 'local', localImage: 'us.gcr.io/test-bbfc8/jeffsbooks:latest',  notCompliesCmd: '', policies: 'jeffsbooks', onDisallowed: 'fail', register: true, registry: 'GCR', hideBase: false, showNegligible: false
+                }
+              }
+            }
+
+            stage("Aqua Image Profiling"){
+                steps{
+                    script{
+                        sh "docker run --rm --name=profile -e AQUA_PROFILE=true alpine"
+                        sh "python3 /home/jenkins/image_profile.py"
+                    }
+                }
+
+            }
+
+
+          stage('Push Docker Image to GCR'){
+           steps{
+                script{
+                    docker.withRegistry('https://us.gcr.io', 'gcr:gcr-284') {
+                        docker.image('us.gcr.io/test-bbfc8/jeffsbooks').push('latest')
+                    }
+                }
+            }
+          }
+
+
+
+            stage('Deploy to k8s'){
+                steps{
+                    sh "kubectl --kubeconfig=/home/jenkins/config delete --namespace=jeffsbooks deployment jeffsbooks"
+                    sh "kubectl --kubeconfig=/home/jenkins/config apply -f jeffsbooks-deployment.yaml"
+                 }
+          }
+
+    }
+
+}

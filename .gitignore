@@ -1,0 +1,10 @@
+.DS_Store
+.Python
+.idea/
+.cache/
+.vagrant
+deploy/
+jenkins
+__pycache__/
+*.log
+venv/
